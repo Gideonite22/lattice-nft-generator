@@ -87,17 +87,21 @@
   (primary (string-utf8 20))
   (secondary (string-utf8 20))
   (background (string-utf8 20)))
+  ;; Hash each parameter individually, concatenate the resulting hash buffers pairwise, then hash the result
   (sha256 
-    (concat 
-      (concat 
-        (concat (unwrap-panic (to-consensus-buff? seed)) (unwrap-panic (to-consensus-buff? lattice-type)))
-        (concat (unwrap-panic (to-consensus-buff? width)) (unwrap-panic (to-consensus-buff? height)))
-      )
-      (concat 
-        (concat (unwrap-panic (to-consensus-buff? complexity)) (unwrap-panic (to-consensus-buff? primary)))
-        (concat (unwrap-panic (to-consensus-buff? secondary)) (unwrap-panic (to-consensus-buff? background)))
-      )
-    )
+    (concat (sha256 seed) ;; H1
+      (concat (sha256 (to-consensus-buff lattice-type)) ;; H2
+        (concat (sha256 width) ;; H3
+          (concat (sha256 height) ;; H4
+            (concat (sha256 complexity) ;; H5
+              (concat (sha256 (to-consensus-buff primary)) ;; H6
+                (concat (sha256 (to-consensus-buff secondary)) (sha256 (to-consensus-buff background))) ;; H7 + H8 -> B1
+              ) ;; H6 + B1 -> B2
+            ) ;; H5 + B2 -> B3
+          ) ;; H4 + B3 -> B4
+        ) ;; H3 + B4 -> B5
+      ) ;; H2 + B5 -> B6
+    ) ;; H1 + B6 -> Final Buffer to Hash
   )
 )
 
